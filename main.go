@@ -10,11 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	signatureByteLen = 12
-	separator        = "."
-)
-
 var b64 = base64.RawURLEncoding.WithPadding(base64.NoPadding)
 
 type Entity int
@@ -53,7 +48,7 @@ func (r *Registry) Serialize(p *PublicID) (string, error) {
 	if !ok {
 		return "", errors.New("prefix not found")
 	}
-	return r.encoder(prefix, separator, p.UUID, r.signer), nil
+	return r.encoder(prefix, r.separator, p.UUID, r.signer), nil
 }
 
 func (r *Registry) Parse(s string) (PublicID, error) {
@@ -62,14 +57,14 @@ func (r *Registry) Parse(s string) (PublicID, error) {
 
 func stdSigner(msg []byte) []byte {
 	h := hmac.New(sha256.New, []byte("magical-and-secret-key"))
-	return h.Sum(msg)
+	return h.Sum(msg)[:12]
 }
 
 func stdEncoder(prefix string, separator string, uuid uuid.UUID, signer signer) string {
 	msg := fmt.Sprintf("%s%s%s", prefix, separator, b64.EncodeToString(uuid[:]))
 	signature := signer([]byte(msg))
 
-	return fmt.Sprintf("%s%s%s", msg, separator, b64.EncodeToString(signature[:12]))
+	return fmt.Sprintf("%s%s%s", msg, separator, b64.EncodeToString(signature))
 }
 
 func NewRegistry(pis []PrefixInfo, separator string) Registry {

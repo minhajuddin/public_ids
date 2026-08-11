@@ -25,3 +25,7 @@ func TestFull(t *testing.T) {
 	id, err = r.Serialize(&PublicID{PostID, uuid})
 	assert.Equal(t, id, "post.AZ_x8YwHcymhAMExa72h0Q.cG9zdC5BWl94OFl3")
 }
+
+// 019ff1f1-8c07-7329-a100-c1316bbda1d1_123456
+// usr.AZ_x8YwHcymhAMExa72h0Q.dXNlci5BWl94OFl3
+// pst.AZ_x8YwHcymhAMExa72h0Q.cG9zdC5BWl94OFl3
