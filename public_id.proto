@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package public_ids;
+
+option go_package = "github.com/minhajuddin/public_ids/pb;public_ids";
+
+// PublicID represents a signed public identifier.
+message PublicID {
+  bytes uuid = 1;
+  bytes signature = 2;
+  uint32 key_id = 3;
+}
