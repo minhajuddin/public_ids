@@ -64,7 +64,8 @@ type codec interface {
 }
 
 type pbSignatureEncoder struct {
-	hash hash.Hash
+	hash     hash.Hash
+	entities map[string]Entity
 }
 
 func (e *pbSignatureEncoder) Encode(uuid uuid.UUID, prefix string, separator string) (string, error) {
@@ -82,9 +83,6 @@ func (e *pbSignatureEncoder) Encode(uuid uuid.UUID, prefix string, separator str
 		return "", err
 	}
 
-	fmt.Println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
-	fmt.Println(b64.EncodeToString(finalPidBytes))
-	fmt.Println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
 	msg := fmt.Sprintf("%s%s%s", prefix, separator, b64.EncodeToString(finalPidBytes))
 
 	return msg, nil
@@ -99,22 +97,16 @@ func (e *pbSignatureEncoder) Decode(s string, separator string) (*PublicID, erro
 	}
 
 	// 2 parse protobuf
-	outBytes := make([]byte, 0, len(s))
-	_, err := b64.Decode(outBytes, []byte(parts[1]))
+	outBytes := make([]byte, b64.DecodedLen(len(parts[1])))
+	n, err := b64.Decode(outBytes, []byte(parts[1]))
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
-	fmt.Println(b64.EncodeToString(outBytes))
-	fmt.Println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+	outBytes = outBytes[:n]
 
 	var out pb.SignedPublicID
 	err = proto.Unmarshal(outBytes, &out) // deserialize
 	if err != nil {
-		fmt.Println("------------------------------------------------------------")
-		fmt.Println(s, separator, parts)
-		fmt.Println("------------------------------------------------------------")
 		return nil, err
 	}
 
@@ -128,50 +120,53 @@ func (e *pbSignatureEncoder) Decode(s string, separator string) (*PublicID, erro
 	if err != nil {
 		return nil, err
 	}
-	if bytes.Compare(signature, out.Signature) != 0 {
+	if !bytes.Equal(signature, out.Signature) {
 		return nil, errors.New("invalid signature")
 	}
 
-	uuid, err := uuid.ParseBytes(out.Id)
+	uuid, err := uuid.FromBytes(out.Id)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PublicID{
-		Entity: 0,
+		Entity: e.entities[out.Prefix],
 		UUID:   uuid,
 	}, nil
 }
 
 func (e *pbSignatureEncoder) sign(prefix string, id []byte) ([]byte, error) {
-	buf := bytes.NewBuffer([]byte(prefix))
-	_, err := buf.Write(id)
-	if err != nil {
-		return []byte{}, err
+	e.hash.Reset()
+	if _, err := e.hash.Write([]byte(prefix)); err != nil {
+		return nil, err
+	}
+	if _, err := e.hash.Write(id); err != nil {
+		return nil, err
 	}
 
-	signature := e.hash.Sum(buf.Bytes())
+	signature := e.hash.Sum(nil)
 	shortSignature := signature[:12]
 
 	return shortSignature, nil
 }
 
-func newPbSignatureEncoder(hash hash.Hash) *pbSignatureEncoder {
+func newPbSignatureEncoder(hash hash.Hash, entities map[string]Entity) *pbSignatureEncoder {
 	return &pbSignatureEncoder{
-		hash: hash,
+		hash:     hash,
+		entities: entities,
 	}
 }
 
 func NewRegistry(pis []PrefixInfo, separator string) *Registry {
 	prefixes := make(map[Entity]string)
+	entities := make(map[string]Entity)
 	for _, p := range pis {
 		prefixes[p.Entity] = p.Prefix
+		entities[p.Prefix] = p.Entity
 	}
 	return &Registry{
 		prefixes:  prefixes,
 		separator: separator,
-		codec: &pbSignatureEncoder{
-			hmac.New(sha256.New, []byte("a-single-key")),
-		},
+		codec:     newPbSignatureEncoder(hmac.New(sha256.New, []byte("a-single-key")), entities),
 	}
 }

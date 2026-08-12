@@ -27,8 +27,8 @@ func TestFull(t *testing.T) {
 
 	pid, err := r.Deserialize(id)
 	assert.Nil(t, err)
-	assert.Equal(t, pid.Entity, 3)
-	assert.Equal(t, pid.UUID, uuid)
+	assert.Equal(t, UserID, pid.Entity)
+	assert.Equal(t, uuid, pid.UUID)
 }
 
 // 019ff1f1-8c07-7329-a100-c1316bbda1d1_123456
