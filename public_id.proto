@@ -4,9 +4,19 @@ package public_ids;
 
 option go_package = "github.com/minhajuddin/public_ids/pb;public_ids";
 
-// PublicID represents a signed public identifier.
-message PublicID {
-  bytes uuid = 1;
+// represents a signed public identifier.
+// signature is hmac.New(sha256.New, keystore.GetKey(key_id)).Sum(prefix + public_id)
+// prefix is sent out of band
+message SignedPublicID {
+  bytes id = 1;
   bytes signature = 2;
   uint32 key_id = 3;
+  // TODO: optimization, send prefix out of band
+  // string prefix = 4;
 }
+
+// prefix
+// uuid
+
+// key_id
+// signature

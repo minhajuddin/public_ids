@@ -29,3 +29,12 @@ func TestFull(t *testing.T) {
 // 019ff1f1-8c07-7329-a100-c1316bbda1d1_123456
 // usr.AZ_x8YwHcymhAMExa72h0Q.dXNlci5BWl94OFl3
 // pst.AZ_x8YwHcymhAMExa72h0Q.cG9zdC5BWl94OFl3
+
+// Old vs Proto with prefix in message
+// usr.ChABn_HxjAdzKaEAwTFrvaHREgzpSLJni7kp-FlhMZYYASIEdXNlcg
+// usr.AZ_x8YwHcymhAMExa72h0Q.dXNlci5BWl94OFl3
+
+// With prefix nil
+// usr.ChABn_HxjAdzKaEAwTFrvaHREgzpSLJni7kp-FlhMZYYASIEdXNlcg <- Without null prefix
+// usr.ChABn_HxjAdzKaEAwTFrvaHREgzpSLJni7kp-FlhMZYYAQ
+// usr.AZ_x8YwHcymhAMExa72h0Q.dXNlci5BWl94OFl3

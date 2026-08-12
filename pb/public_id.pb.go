@@ -21,30 +21,32 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// PublicID represents a signed public identifier.
-type PublicID struct {
+// represents a signed public identifier.
+// signature is hmac.New(sha256.New, keystore.GetKey(key_id)).Sum(prefix + public_id)
+// prefix is sent out of band
+type SignedPublicID struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uuid          []byte                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Signature     []byte                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 	KeyId         uint32                 `protobuf:"varint,3,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PublicID) Reset() {
-	*x = PublicID{}
+func (x *SignedPublicID) Reset() {
+	*x = SignedPublicID{}
 	mi := &file_public_id_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PublicID) String() string {
+func (x *SignedPublicID) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PublicID) ProtoMessage() {}
+func (*SignedPublicID) ProtoMessage() {}
 
-func (x *PublicID) ProtoReflect() protoreflect.Message {
+func (x *SignedPublicID) ProtoReflect() protoreflect.Message {
 	mi := &file_public_id_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -56,26 +58,26 @@ func (x *PublicID) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PublicID.ProtoReflect.Descriptor instead.
-func (*PublicID) Descriptor() ([]byte, []int) {
+// Deprecated: Use SignedPublicID.ProtoReflect.Descriptor instead.
+func (*SignedPublicID) Descriptor() ([]byte, []int) {
 	return file_public_id_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *PublicID) GetUuid() []byte {
+func (x *SignedPublicID) GetId() []byte {
 	if x != nil {
-		return x.Uuid
+		return x.Id
 	}
 	return nil
 }
 
-func (x *PublicID) GetSignature() []byte {
+func (x *SignedPublicID) GetSignature() []byte {
 	if x != nil {
 		return x.Signature
 	}
 	return nil
 }
 
-func (x *PublicID) GetKeyId() uint32 {
+func (x *SignedPublicID) GetKeyId() uint32 {
 	if x != nil {
 		return x.KeyId
 	}
@@ -87,9 +89,9 @@ var File_public_id_proto protoreflect.FileDescriptor
 const file_public_id_proto_rawDesc = "" +
 	"\n" +
 	"\x0fpublic_id.proto\x12\n" +
-	"public_ids\"S\n" +
-	"\bPublicID\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\fR\x04uuid\x12\x1c\n" +
+	"public_ids\"U\n" +
+	"\x0eSignedPublicID\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12\x1c\n" +
 	"\tsignature\x18\x02 \x01(\fR\tsignature\x12\x15\n" +
 	"\x06key_id\x18\x03 \x01(\rR\x05keyIdB1Z/github.com/minhajuddin/public_ids/pb;public_idsb\x06proto3"
 
@@ -107,7 +109,7 @@ func file_public_id_proto_rawDescGZIP() []byte {
 
 var file_public_id_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_public_id_proto_goTypes = []any{
-	(*PublicID)(nil), // 0: public_ids.PublicID
+	(*SignedPublicID)(nil), // 0: public_ids.SignedPublicID
 }
 var file_public_id_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type

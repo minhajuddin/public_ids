@@ -62,23 +62,42 @@ type pbSignatureEncoder struct {
 }
 
 func (e *pbSignatureEncoder) Encode(uuid uuid.UUID, prefix string, separator string) (string, error) {
-	id := &pb.PublicID{
-		Uuid:      uuid[:],
-		Signature: []byte("test"),
-		KeyId:     1,
+	pbPublicID := &pb.SignedPublicID{
+		Prefix: prefix,
+		Id:     uuid[:],
 	}
-	data, err := proto.Marshal(id) // serialize
+
+	pidBytes, err := proto.Marshal(pbPublicID) // serialize
 	if err != nil {
 		return "", err
 	}
+
+	// sign
+	_, err = fmt.Fprintf(e.hash, "%s%s", prefix, pidBytes)
+	if err != nil {
+		return "", err
+	}
+
+	signature := e.hash.Sum([]byte{})
+	signaturePrefix := signature[:12]
+
+	finalPidBytes, err := proto.Marshal(&pb.SignedPublicID{
+		// Prefix:    prefix,
+		Id:        uuid[:],
+		Signature: signaturePrefix,
+		KeyId:     1,
+	}) // serialize
+	if err != nil {
+		return "", err
+	}
+
 	// // ...
 	// var out pb.PublicID
 	// err = proto.Unmarshal(data, &out)   // deserialize
 
-	msg := fmt.Sprintf("%s%s%s", prefix, separator, b64.EncodeToString(data))
-	signature := e.hash.Sum([]byte(msg))
+	msg := fmt.Sprintf("%s%s%s", prefix, separator, b64.EncodeToString(finalPidBytes))
 
-	return fmt.Sprintf("%s%s%s", msg, separator, b64.EncodeToString(signature)), nil
+	return msg, nil
 }
 
 func (e *pbSignatureEncoder) Decode(s string) (*PublicID, error) {
