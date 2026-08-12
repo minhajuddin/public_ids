@@ -25,10 +25,12 @@ const (
 // signature is hmac.New(sha256.New, keystore.GetKey(key_id)).Sum(prefix + public_id)
 // prefix is sent out of band
 type SignedPublicID struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Signature     []byte                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
-	KeyId         uint32                 `protobuf:"varint,3,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Signature []byte                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+	KeyId     uint32                 `protobuf:"varint,3,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	// NOTE: not optimized for size but robustness, prefix is in the public id and the proto
+	Prefix        string `protobuf:"bytes,4,opt,name=prefix,proto3" json:"prefix,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -84,16 +86,24 @@ func (x *SignedPublicID) GetKeyId() uint32 {
 	return 0
 }
 
+func (x *SignedPublicID) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
 var File_public_id_proto protoreflect.FileDescriptor
 
 const file_public_id_proto_rawDesc = "" +
 	"\n" +
 	"\x0fpublic_id.proto\x12\n" +
-	"public_ids\"U\n" +
+	"public_ids\"m\n" +
 	"\x0eSignedPublicID\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x1c\n" +
 	"\tsignature\x18\x02 \x01(\fR\tsignature\x12\x15\n" +
-	"\x06key_id\x18\x03 \x01(\rR\x05keyIdB1Z/github.com/minhajuddin/public_ids/pb;public_idsb\x06proto3"
+	"\x06key_id\x18\x03 \x01(\rR\x05keyId\x12\x16\n" +
+	"\x06prefix\x18\x04 \x01(\tR\x06prefixB1Z/github.com/minhajuddin/public_ids/pb;public_idsb\x06proto3"
 
 var (
 	file_public_id_proto_rawDescOnce sync.Once
