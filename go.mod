@@ -4,7 +4,7 @@ go 1.26.1
 
 require github.com/google/uuid v1.6.0
 
-require google.golang.org/protobuf v1.36.12 // indirect
+require google.golang.org/protobuf v1.36.12
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

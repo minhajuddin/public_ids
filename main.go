@@ -60,7 +60,7 @@ func (r *Registry) Parse(s string) (PublicID, error) {
 
 type codec interface {
 	Encode(uuid uuid.UUID, prefix string, separator string) (string, error)
-	Decode(s string, separator string) (*PublicID, error)
+	Decode(s string, separator string) (PublicID, error)
 }
 
 type pbSignatureEncoder struct {
