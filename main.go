@@ -6,8 +6,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"hash"
 
 	"github.com/google/uuid"
+	pb "github.com/minhajuddin/public_ids/pb"
+	"google.golang.org/protobuf/proto"
 )
 
 var b64 = base64.RawURLEncoding.WithPadding(base64.NoPadding)
@@ -30,16 +33,10 @@ type PublicIDWithSignature struct {
 	Signature string
 }
 
-type (
-	encoder func(prefix string, separator string, uuid uuid.UUID, signer signer) string
-	signer  func(msg []byte) []byte
-)
-
 type Registry struct {
 	prefixes  map[Entity]string
 	separator string
-	signer    signer
-	encoder   encoder
+	codec     codec
 }
 
 func (r *Registry) Serialize(p *PublicID) (string, error) {
@@ -48,34 +45,62 @@ func (r *Registry) Serialize(p *PublicID) (string, error) {
 	if !ok {
 		return "", errors.New("prefix not found")
 	}
-	return r.encoder(prefix, r.separator, p.UUID, r.signer), nil
+	return r.codec.Encode(p.UUID, prefix, r.separator)
 }
 
 func (r *Registry) Parse(s string) (PublicID, error) {
 	return PublicID{}, nil
 }
 
-func stdSigner(msg []byte) []byte {
-	h := hmac.New(sha256.New, []byte("magical-and-secret-key"))
-	return h.Sum(msg)[:12]
+type codec interface {
+	Encode(uuid uuid.UUID, prefix string, separator string) (string, error)
+	Decode(s string) (*PublicID, error)
 }
 
-func stdEncoder(prefix string, separator string, uuid uuid.UUID, signer signer) string {
-	msg := fmt.Sprintf("%s%s%s", prefix, separator, b64.EncodeToString(uuid[:]))
-	signature := signer([]byte(msg))
-
-	return fmt.Sprintf("%s%s%s", msg, separator, b64.EncodeToString(signature))
+type pbSignatureEncoder struct {
+	hash hash.Hash
 }
 
-func NewRegistry(pis []PrefixInfo, separator string) Registry {
+func (e *pbSignatureEncoder) Encode(uuid uuid.UUID, prefix string, separator string) (string, error) {
+	id := &pb.PublicID{
+		Uuid:      uuid[:],
+		Signature: []byte("test"),
+		KeyId:     1,
+	}
+	data, err := proto.Marshal(id) // serialize
+	if err != nil {
+		return "", err
+	}
+	// // ...
+	// var out pb.PublicID
+	// err = proto.Unmarshal(data, &out)   // deserialize
+
+	msg := fmt.Sprintf("%s%s%s", prefix, separator, b64.EncodeToString(data))
+	signature := e.hash.Sum([]byte(msg))
+
+	return fmt.Sprintf("%s%s%s", msg, separator, b64.EncodeToString(signature)), nil
+}
+
+func (e *pbSignatureEncoder) Decode(s string) (*PublicID, error) {
+	return nil, nil
+}
+
+func newPbSignatureEncoder(hash hash.Hash) *pbSignatureEncoder {
+	return &pbSignatureEncoder{
+		hash: hash,
+	}
+}
+
+func NewRegistry(pis []PrefixInfo, separator string) *Registry {
 	prefixes := make(map[Entity]string)
 	for _, p := range pis {
 		prefixes[p.Entity] = p.Prefix
 	}
-	return Registry{
+	return &Registry{
 		prefixes:  prefixes,
 		separator: separator,
-		encoder:   stdEncoder,
-		signer:    stdSigner,
+		codec: &pbSignatureEncoder{
+			hmac.New(sha256.New, []byte("a-single-key")),
+		},
 	}
 }
