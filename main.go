@@ -37,12 +37,26 @@ type PublicIDWithSignature struct {
 
 type Registry struct {
 	prefixes  map[Entity]string
+	entities  map[string]Entity
 	separator string
 	codec     codec
 }
 
 func (r *Registry) Deserialize(s string) (*PublicID, error) {
-	return r.codec.Decode(s, r.separator)
+	id, prefix, err := r.codec.Decode(s, r.separator)
+	if err != nil {
+		return nil, err
+	}
+
+	entity, ok := r.entities[prefix]
+	if !ok {
+		return nil, errors.New("unknown prefix")
+	}
+
+	return &PublicID{
+		Entity: entity,
+		UUID:   id,
+	}, nil
 }
 
 func (r *Registry) Serialize(p *PublicID) (string, error) {
@@ -60,12 +74,11 @@ func (r *Registry) Parse(s string) (PublicID, error) {
 
 type codec interface {
 	Encode(uuid uuid.UUID, prefix string, separator string) (string, error)
-	Decode(s string, separator string) (PublicID, error)
+	Decode(s string, separator string) (uuid uuid.UUID, prefix string, err error)
 }
 
 type pbSignatureEncoder struct {
-	hash     hash.Hash
-	entities map[string]Entity
+	hash hash.Hash
 }
 
 func (e *pbSignatureEncoder) Encode(uuid uuid.UUID, prefix string, separator string) (string, error) {
@@ -88,51 +101,48 @@ func (e *pbSignatureEncoder) Encode(uuid uuid.UUID, prefix string, separator str
 	return msg, nil
 }
 
-func (e *pbSignatureEncoder) Decode(s string, separator string) (*PublicID, error) {
+func (e *pbSignatureEncoder) Decode(s string, separator string) (uuid.UUID, string, error) {
 	// 1 cut the prefix and check format
 	parts := strings.Split(s, separator)
 
 	if len(parts) != 2 {
-		return nil, errors.New("bad format")
+		return uuid.UUID{}, "", errors.New("bad format")
 	}
 
 	// 2 parse protobuf
 	outBytes := make([]byte, b64.DecodedLen(len(parts[1])))
 	n, err := b64.Decode(outBytes, []byte(parts[1]))
 	if err != nil {
-		return nil, err
+		return uuid.UUID{}, "", err
 	}
 	outBytes = outBytes[:n]
 
 	var out pb.SignedPublicID
 	err = proto.Unmarshal(outBytes, &out) // deserialize
 	if err != nil {
-		return nil, err
+		return uuid.UUID{}, "", err
 	}
 
 	// compare id prefix and proto prefix
 	if parts[0] != out.Prefix {
-		return nil, errors.New("prefix mismatch")
+		return uuid.UUID{}, "", errors.New("prefix mismatch")
 	}
 
 	// 3 check signature
 	signature, err := e.sign(out.Prefix, out.Id)
 	if err != nil {
-		return nil, err
+		return uuid.UUID{}, "", err
 	}
 	if !bytes.Equal(signature, out.Signature) {
-		return nil, errors.New("invalid signature")
+		return uuid.UUID{}, "", errors.New("invalid signature")
 	}
 
-	uuid, err := uuid.FromBytes(out.Id)
+	id, err := uuid.FromBytes(out.Id)
 	if err != nil {
-		return nil, err
+		return uuid.UUID{}, "", err
 	}
 
-	return &PublicID{
-		Entity: e.entities[out.Prefix],
-		UUID:   uuid,
-	}, nil
+	return id, out.Prefix, nil
 }
 
 func (e *pbSignatureEncoder) sign(prefix string, id []byte) ([]byte, error) {
@@ -150,10 +160,9 @@ func (e *pbSignatureEncoder) sign(prefix string, id []byte) ([]byte, error) {
 	return shortSignature, nil
 }
 
-func newPbSignatureEncoder(hash hash.Hash, entities map[string]Entity) *pbSignatureEncoder {
+func newPbSignatureEncoder(hash hash.Hash) *pbSignatureEncoder {
 	return &pbSignatureEncoder{
-		hash:     hash,
-		entities: entities,
+		hash: hash,
 	}
 }
 
@@ -166,7 +175,8 @@ func NewRegistry(pis []PrefixInfo, separator string) *Registry {
 	}
 	return &Registry{
 		prefixes:  prefixes,
+		entities:  entities,
 		separator: separator,
-		codec:     newPbSignatureEncoder(hmac.New(sha256.New, []byte("a-single-key")), entities),
+		codec:     newPbSignatureEncoder(hmac.New(sha256.New, []byte("a-single-key"))),
 	}
 }

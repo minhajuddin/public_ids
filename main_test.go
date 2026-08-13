@@ -21,9 +21,9 @@ func TestFull(t *testing.T) {
 	}, ".")
 	id, err := r.Serialize(&PublicID{UserID, uuid})
 	assert.Nil(t, err)
-	// assert.Equal(t, id, "user.AZ_x8YwHcymhAMExa72h0Q.dXNlci5BWl94OFl3")
+	assert.Equal(t, id, "user.AZ_x8YwHcymhAMExa72h0Q.dXNlci5BWl94OFl3")
 	// id, err = r.Serialize(&PublicID{PostID, uuid})
-	// assert.Equal(t, id, "post.AZ_x8YwHcymhAMExa72h0Q.cG9zdC5BWl94OFl3")
+	assert.Equal(t, id, "post.AZ_x8YwHcymhAMExa72h0Q.cG9zdC5BWl94OFl3")
 
 	pid, err := r.Deserialize(id)
 	assert.Nil(t, err)
